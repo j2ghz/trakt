@@ -91,6 +91,7 @@ namespace Trakt.ScheduledTasks
 
             foreach (var user in users)
             {
+                _logger.Debug($"Running {Key} for {user.Name}");
                 var traktUser = UserHelper.GetTraktUser(user);
 
                 // I'll leave this in here for now, but in reality this continue should never be reached.

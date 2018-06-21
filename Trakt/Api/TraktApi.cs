@@ -68,11 +68,13 @@ namespace Trakt.Api
         {
             if (item.Path == null || item.LocationType == LocationType.Virtual)
             {
+                _logger.Debug($"[{item}] Can't sync non-existing item");
                 return false;
             }
 
             if (traktUser.LocationsExcluded != null && traktUser.LocationsExcluded.Any(s => _fileSystem.ContainsSubPath(s, item.Path)))
             {
+                _logger.Debug($"[{item}] Can't sync item from an excluded location");
                 return false;
             }
 
@@ -80,20 +82,33 @@ namespace Trakt.Api
 
             if (movie != null)
             {
-                return !string.IsNullOrEmpty(movie.GetProviderId(MetadataProviders.Imdb)) ||
-                    !string.IsNullOrEmpty(movie.GetProviderId(MetadataProviders.Tmdb));
+                if (!string.IsNullOrEmpty(movie.GetProviderId(MetadataProviders.Imdb)) ||
+                    !string.IsNullOrEmpty(movie.GetProviderId(MetadataProviders.Tmdb)))
+                {
+                    _logger.Debug($"[{movie}] Movie can be synced");
+                    return true;
+                }
+                _logger.Debug($"[{movie}] Movie is missing Imdb and Tmdb ID, it can't be synced");
+                return false;
             }
 
             var episode = item as Episode;
 
             if (episode != null && episode.Series != null && !episode.IsMissingEpisode && (episode.IndexNumber.HasValue || !string.IsNullOrEmpty(episode.GetProviderId(MetadataProviders.Tvdb))))
             {
+                _logger.Debug($"[{episode}] Episode can't be synced because it does not belong to a series, or is missing, or has no number or id.");
                 var series = episode.Series;
 
-                return !string.IsNullOrEmpty(series.GetProviderId(MetadataProviders.Imdb)) ||
-                    !string.IsNullOrEmpty(series.GetProviderId(MetadataProviders.Tvdb));
+                if (!string.IsNullOrEmpty(series.GetProviderId(MetadataProviders.Imdb)) ||
+                    !string.IsNullOrEmpty(series.GetProviderId(MetadataProviders.Tvdb)))
+                {
+                   
+                    return true;
+                }
+                _logger.Debug($"[{episode}] Episode's series {series} does not have a Imdb or Tvdb ID.");
+                return false;
             }
-
+            _logger.Debug($"[{item}] Item is not a movie or an episode.");
             return false;
         }
 
